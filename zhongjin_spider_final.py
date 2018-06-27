@@ -13,6 +13,9 @@ from lxml import html
 import xml.etree.ElementTree as ET
 import io
 # from lxml import etree as ET
+from db_insert2 import set_ranks_df
+
+
 def cffex_rank(year=2018, month=3, day=27):
     contracts = ['IF', 'IC', 'IH', 'TF', 'T']
     # contracts = ['IC', 'IH', 'TF', 'T']
@@ -103,7 +106,7 @@ def cffex_rank_by_contract(year=2018, month=5, day=1, contract='IF'):
         # print(a_group_df.sort_values(by=['rank']))
         print("-" * 60)
         temp_merge_df = None
-        for grand_group in grand_groups.groups:
+        for grand_group in ['0', '1', '2']:
 
             print(grand_group)
 
@@ -111,17 +114,15 @@ def cffex_rank_by_contract(year=2018, month=5, day=1, contract='IF'):
             # print(grand_group_df.sort_values(by=['rank']))
             grand_group_df = grand_group_df.sort_values(by=['rank'])
             if temp_merge_df is None:
+
                 temp_merge_df = grand_group_df
+
             else:
                 selected_cols = ['rank', 'shortname', 'volume', 'varvolume', 'partyid']
                 t_y_df = grand_group_df[selected_cols]
 
                 name_mapper = {col: col + '_' + grand_group if col != 'rank' else col for col in selected_cols}
-                # print(name_mapper)
-                # col_map = {'CJ1_CHG': '比上交易日增减', 'rank': '名次', 'CJ2': '持买单量2', 'CJ3_CHG': '比上交易日增减3',
-                #    'PARTICIPANTABBR2': '期货公司会员简称2',
-                #    'CJ1': '成交量', 'CJ3': '持卖单量3', 'PARTICIPANTABBR3': '期货公司会员简称3', 'CJ2_CHG': '比上交易日增减2',
-                #    'PARTICIPANTABBR1': '期货公司会员简称'}
+
 
                 t_y_df.rename(columns=lambda x: x.strip(), inplace=True)
                 t_y_df.rename(columns=name_mapper, inplace=True)
@@ -140,18 +141,18 @@ def cffex_rank_by_contract(year=2018, month=5, day=1, contract='IF'):
             whole_df.to_csv("whole_pandas_merge_0412_v2.csv", encoding='gbk')
             # break
             # break
-    whole_df['tradingday'] = pd.to_datetime(whole_df['tradingday'], format='%Y%m%d', errors='ignore')
-    print(whole_df['tradingday'])
+    # whole_df['tradingday'] = pd.to_datetime(whole_df['tradingday'], format='%Y%m%d', errors='ignore')
+    # print(whole_df['tradingday'])
     from db_insert2 import insert_db
-    # col_map = {'CJ1_CHG': '比上交易日增减', 'rank': '名次', 'CJ2': '持买单量2', 'CJ3_CHG': '比上交易日增减3',
-    #    'PARTICIPANTABBR2': '期货公司会员简称2',
-    #    'CJ1': '成交量', 'CJ3': '持卖单量3', 'PARTICIPANTABBR3': '期货公司会员简称3', 'CJ2_CHG': '比上交易日增减2',
-    #    'PARTICIPANTABBR1': '期货公司会员简称'}
+
     try:
+        # Index(['rank', 'shortname_0', 'volume_0', 'varvolume_0', 'partyid_0',
+      #  'shortname_1', 'volume_1', 'varvolume_1', 'partyid_1', 'shortname_2',
+      #  'volume_2', 'varvolume_2', 'partyid_2'],
+      # dtype='object')
         whole_df = whole_df[['instrumentid', 'productid', 'rank', 'shortname', 'tradingday', 'varvolume', 'volume',
                              'shortname_1', 'volume_1', 'varvolume_1', 'shortname_2', 'volume_2', 'varvolume_2', 'partyid',
-                             'partyid_1'
-            , 'partyid_2']]
+                             'partyid_1', 'partyid_2']]
     except Exception as e:
         print(e)
     col_mapper = {'shortname_2': 'PARTICIPANTABBR3', 'shortname': 'PARTICIPANTABBR1', 'volume': 'CJ1',
@@ -160,12 +161,15 @@ def cffex_rank_by_contract(year=2018, month=5, day=1, contract='IF'):
                   'shortname_1': 'PARTICIPANTABBR2', 'productid': 'PRODUCTNAME', 'varvolume_1': 'CJ2_CHG',
                   'tradingday': 'REPORT_DATE', 'partyid': 'PARTICIPANTID1', 'partyid_1': 'PARTICIPANTID2',
                   'partyid_2': 'PARTICIPANTID3'}
+
+
     whole_df.rename(columns=col_mapper, inplace=True)
-    whole_df['exchange'] = "CFFEX"
+    # whole_df['EXCHANGE'] = "CFFEX"
     whole_df['VARIETY'] = False;
     # t_y_df.rename(columns=name_mapper, inplace=True)
-
-    insert_db(whole_df, tablename='ranks', con='sqlite:///exchange.sqlite')
+    print(whole_df)
+    set_ranks_df(whole_df, year=year, month=month, day=day, exchange='CFFEX')
+    # insert_db(whole_df, tablename='ranks', con='sqlite:///exchange.sqlite')
     return
 
 def main():
